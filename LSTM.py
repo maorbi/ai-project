@@ -13,20 +13,16 @@ import datetime as dt
 from sklearn.metrics import mean_squared_error
 
 def main():
-    df = pd.read_csv("AAPL.csv")
-
+    df = pd.read_csv("merged_data.csv", sep=',')
+    df.drop('Date', axis=1,inplace=True)
     # set a new data frame with only close price
-    data = df.filter(items=['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume'])
-    data['Date'] = [dt.datetime.strptime(date, '%Y-%m-%d') for date in data['Date']]
-    for i in range(len(data['Date'])):
-        data['Date'][i] = data['Date'][i].strftime("%Y%m%d")
+    data = df.filter(regex='$')
     dataset = data.values
-    for i in range(len(dataset)):
-        dataset[i][0] = float(dataset[i][0])
     # using 80% of the data to train round up
     training_data_len = math.ceil(len(dataset) * 0.8)
-    scaled_data1 = data.filter(items=['Date', 'Open', 'High', 'Low', 'Adj Close', 'Volume'])
-    scaled_data2 = data.filter(items=['Close'])
+    scaled_data2 = df.filter(items=['Close_A'])
+    df.drop('Close_A', axis=1, inplace=True)
+    scaled_data1 = data.filter(regex='$')
     # scaling the data (helps the model)
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaler2 = MinMaxScaler(feature_range=(0, 1))
@@ -65,12 +61,13 @@ def main():
 
     # train the model
     # NOTE THIS TAKES TIME
+    print(y_train)
     model.fit(x_train, y_train, batch_size=1, epochs=1)
     # Creating the test data
     # TODO put elsewhere
     test_data1 = scaled_data1[training_data_len - 60:, :]
     test_data2 = scaled_data2[training_data_len - 60:, :]
-    test_data = np.concatenate((test_data1, test_data2),axis=1)
+    test_data = np.concatenate((test_data1, test_data2), axis=1)
 
     # create x_test t_test
     x_test = []
@@ -82,11 +79,12 @@ def main():
     # reshape data
     x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], x_train.shape[2]))
     # get the model predicted values
+    print(x_test)
     predictions = model.predict(x_test)
     predictions = scaler2.inverse_transform(predictions)
 
     # get the RMSE (root mean squared error)
-    y_test = y_test[:, 4]
+    y_test = y_test[:, 3]
     RMSE = np.sqrt(mean_squared_error(predictions, y_test))
     print(RMSE)
 
@@ -98,8 +96,8 @@ def main():
     plt.title('LSTM')
     plt.xlabel('Date')
     plt.ylabel('Close price')
-    plt.plot(train['Close'])
-    plt.plot(valid[['Close', 'Predictions']])
+    plt.plot(train['Close_A'])
+    plt.plot(valid[['Close_A', 'Predictions']])
     plt.show()
 
 

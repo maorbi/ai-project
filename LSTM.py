@@ -54,9 +54,10 @@ def main():
     # build the LSTM model
     model = Sequential()
     # adds a LSTM layer with 50 neuruns
-    model.add(LSTM(100, return_sequences=True, input_shape=(x_train.shape[1], x_train.shape[2])))
-    model.add(LSTM(100, return_sequences=False))
-    model.add(Dense(25))
+    model.add(LSTM(1024, return_sequences=True, input_shape=(x_train.shape[1], x_train.shape[2])))
+    model.add(LSTM(512, return_sequences=True))
+    model.add(LSTM(256, return_sequences=True))
+    model.add(LSTM(128, return_sequences=False))
     model.add(Dense(1))
 
     # compile the model
@@ -64,9 +65,9 @@ def main():
 
     # train the model
     # NOTE THIS TAKES TIME
-    print(y_train)
     assert not np.any(np.isnan(x_train))
-    model.fit(x_train, y_train, batch_size=1, epochs=2)
+    model.fit(x_train, y_train, batch_size=1, epochs=1)
+    model.save('my_model')
     # Creating the test data
     # TODO put elsewhere
     test_data1 = scaled_data1[training_data_len - 60:, :]
@@ -85,10 +86,8 @@ def main():
     # reshape data
     x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], x_train.shape[2]))
     # get the model predicted values
-    print(x_test)
     predictions = model.predict(x_test)
     predictions = scaler2.inverse_transform(predictions)
-    print(predictions)
     # get the RMSE (root mean squared error)
     y_test = y_test[:, 3]
     RMSE = np.sqrt(mean_squared_error(predictions, y_test))

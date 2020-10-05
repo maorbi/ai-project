@@ -14,13 +14,15 @@ def main():
                       'Adj Close_' + filename_mod, 'Volume_' + filename_mod]
         df.to_csv(filename, index=False)
     df_merged = pd.DataFrame()
-    df_merged = pd.read_csv(all_filenames[0], sep=',')
+    df_merged = pd.read_csv('^GSPC.csv', sep=',')
     for filename in all_filenames:
-        if filename == all_filenames[0]:
+        if filename == '^GSPC.csv':
             continue
         df = pd.read_csv(filename, sep=',')
         df_merged = pd.merge(df_merged, df, on='Date', how='left')
-    df_merged.to_csv('merged_data.csv')
+    os.chdir("C:\\Users\\user\\Desktop\\project data")
+    df_merged = df_merged.dropna(axis='columns')
+    df_merged.to_csv('merged_data.csv', index=False)
         
 if __name__ == '__main__':
     main()

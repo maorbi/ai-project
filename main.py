@@ -96,7 +96,6 @@ def main():
         print('\tInputs: ', dat)
         print('\n\tOutput:', lbl)
         D = 1  # Dimensionality of the data. Since your data is 1-D this would be 1
-        num_unrollings = 50  # Number of time steps you look into the future.
         batch_size = 500  # Number of samples in a batch
         num_nodes = [200, 200, 150]  # Number of hidden nodes in each layer of the deep LSTM stack we're using
         n_layers = len(num_nodes)  # number of layers

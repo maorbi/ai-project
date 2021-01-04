@@ -7,18 +7,18 @@ import pandas as pd
 from pandas import concat
 from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
-from keras.layers import Dense, LSTM
+from keras.layers import Dense, LSTM , Dropout
 import matplotlib.pyplot as plt
 import datetime as dt
 from sklearn.metrics import mean_squared_error
 
 
 def main():
-    # variables to the leraning
-    num_days = 30
+    # variables to the learning
+    num_days = 15
 
 
-    # TODO probalbly a bug in this section
+    # TODO probably a bug in this section
     df = pd.read_csv("merged_data.csv", sep=',')
     df.drop('Date', axis=1, inplace=True)
     # set a new data frame with only close price
@@ -29,9 +29,11 @@ def main():
 
     # using 80% of the data to train round up
     training_data_len = math.ceil(len(dataset) * 0.8)
-    scaled_data1 = data.filter(regex='(^Open.*$|^Close.*$|^High.*$|^Low.*$)')
-    scaled_data2 = data.filter(items=['Close_^GSPC'])
-    scaled_data1.drop('Close_^GSPC', axis=1, inplace=True)
+    #scaled_data1 = data.filter(regex='(^Open.*$|^Close.*$|^High.*$|^Low.*$)')
+    scaled_data1 = data.filter(['Close_AAPL','Open_AAPL'])
+    scaled_data2 = data.filter(items=['Close_AAPL'])
+    #TODO check scaled data diffently
+    scaled_data1.drop('Close_AAPL', axis=1, inplace=True)
     # scaling the data (helps the model)
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaler2 = MinMaxScaler(feature_range=(0, 1))
@@ -51,9 +53,9 @@ def main():
     y_train = []
     # we are looking num_days days forward.
     # y contains data fom num_days and above, x from 0 to num_days
-    for i in range(num_days, len(train_data)):
+    for i in range(num_days, len(train_data)-7):
         x_train.append(train_data[i - num_days:i, :])
-        y_train.append(train_data[i, :])
+        y_train.append(train_data[i:i+7, :])
     # convert to numpy arrays
     x_train, y_train = np.array(x_train), np.array(y_train)
     # reshape the data (LSTM model expects 3 dimensions so need to reshape to fit)
@@ -64,10 +66,15 @@ def main():
     # build the LSTM model
     model = Sequential()
     # adds a LSTM layer with ? neuruns
-    model.add(LSTM(1024, return_sequences=True, input_shape=(x_train.shape[1], x_train.shape[2])))
+    ''' model.add(LSTM(1024, return_sequences=True, input_shape=(x_train.shape[1], x_train.shape[2])))
     model.add(LSTM(512, return_sequences=True))
     model.add(LSTM(256, return_sequences=True))
+    model.add(LSTM(128, return_sequences=False))'''
+    model.add(LSTM(128, return_sequences=True, input_shape=(x_train.shape[1], x_train.shape[2])))
+    model.add(Dropout(0.05))
     model.add(LSTM(128, return_sequences=False))
+    model.add(Dropout(0.05))
+    model.add(Dense(50))
     model.add(Dense(1))
 
     # compile the model
@@ -76,7 +83,7 @@ def main():
     # train the model
     # NOTE THIS TAKES TIME
     assert not np.any(np.isnan(x_train))
-    model.fit(x_train, y_train, batch_size=1, epochs=1)
+    model.fit(x_train, y_train, batch_size=1, epochs=20)
     model.save('my_model')
     # Creating the test data
     # TODO put elsewhere
@@ -99,13 +106,24 @@ def main():
     predictions = model.predict(x_test)
     predictions = scaler2.inverse_transform(predictions)
     # get the RMSE (root mean squared error)
-    y_test = y_test[:, 3]
-    RMSE = np.sqrt(mean_squared_error(predictions, y_test))
-    print(RMSE)
+    y_test = y_test[:, 27]
+    #mean = predictions.mean()
+    total = 0
+    print(predictions)
+    for i in range(len(predictions)-1):
+        if predictions[i] > predictions[i+1]:
+            predictions[i] = 1
+        else:
+            predictions[i] = 0
+        if predictions[i] == y_test[i]:
+            total = total + 1
+    accuracy = total / len(predictions)
+    print("accuracy:")
+    print(accuracy)
     # adds the result value after the model summary to a backlog file for follow up
-    backlog = open("backlog.txt", 'w+')
-    backlog.write(model.summary() + "\n" + "result= " + RMSE)
-    backlog.close()
+    #backlog = open("backlog.txt", 'w+')
+    #backlog.write(model.summary() + "\n" + "result= " + RMSE)
+    #backlog.close()
 
     # plot the data
     train = data[:training_data_len]
@@ -115,8 +133,8 @@ def main():
     plt.title('LSTM')
     plt.xlabel('Date')
     plt.ylabel('Close price')
-    plt.plot(train['Close_^GSPC'])
-    plt.plot(valid[['Close_^GSPC', 'Predictions']])
+    plt.plot(train['Close_AAPL'])
+    plt.plot(valid[['Close_AAPL', 'Predictions']])
     plt.show()
 
 
